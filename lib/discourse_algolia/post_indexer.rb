@@ -6,10 +6,11 @@ class DiscourseAlgolia::PostIndexer < DiscourseAlgolia::Indexer
   SETTINGS = {
     "advancedSyntax" => true,
     "attributeForDistinct" => "topic.id",
-    "attributesToHighlight" => %w[topic.title topic.tags content],
+    "attributesToHighlight" => %w[topic.title topic.tags topic_body content],
     "attributesToRetrieve" => %w[
       post_number
       content
+      topic_body
       url
       image_url
       topic.title
@@ -26,12 +27,12 @@ class DiscourseAlgolia::PostIndexer < DiscourseAlgolia::Indexer
       category.slug
       category.url
     ],
-    "attributesToSnippet" => ["content:30"],
+    "attributesToSnippet" => ["topic_body:30", "content:30"],
     "customRanking" => %w[desc(topic.views) asc(post_number)],
     "distinct" => 1,
     "ranking" => %w[typo words filters proximity attribute custom],
     "removeWordsIfNoResults" => "allOptional",
-    "searchableAttributes" => ["topic.title,topic.tags,content"],
+    "searchableAttributes" => ["topic.title,topic.tags,topic_body,content"],
   }
 
   def queue(ids)
@@ -55,6 +56,7 @@ class DiscourseAlgolia::PostIndexer < DiscourseAlgolia::Indexer
       image_url: post.image_url,
       word_count: post.word_count,
       content: Nokogiri::HTML5.fragment(post.cooked).text,
+      topic_body: Nokogiri::HTML5.fragment(post.topic.first_post&.cooked).text,
       user: {
         id: post.user.id,
         url: "/u/#{post.user.username_lower}",
